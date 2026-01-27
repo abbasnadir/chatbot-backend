@@ -1,4 +1,2 @@
 Design Constraints
--
-- Designed for a smaller audience.
-- 
+- Limited gemini api key use
