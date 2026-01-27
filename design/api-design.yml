@@ -1,29 +1,11 @@
 openapi: "3.0.3"
 info:
-  title: Test APP
-  version: "1.0.1"
+  title: Gemini Response API
+  version: "1.0.0"
 servers:
-  - url: https://api.server.test/v1
+  - url: http://localhost:5000/
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
   schemas:
-    Me:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-        role:
-          type: string
     Error:
       type: object
       required:
@@ -35,20 +17,48 @@ components:
         message:
           type: string
 paths:
-  /me:
+  /:
     get:
-      summary: Get current authenticated user
-      security:
-        - bearerAuth: []
+      summary: Fetch the result from Gemini
+      parameters:
+        - name: q
+          in: query
+          description: Query parameter
+          required: true
+          schema:
+            type: string
       responses:
         "200":
-          description: Authenticated user identity
+          description: Answer to the query by user
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Me"
+                type: object
+                required:
+                  - response
+                properties:
+                  response:
+                    type: string
+        "400":
+          description: Bad request or content policy violation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
-          description: Authentication failed/required
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: API offline or model not found
           content:
             application/json:
               schema:
