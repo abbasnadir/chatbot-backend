@@ -1,17 +1,17 @@
 import type { Request, Response } from "express";
 import type { RouterObject } from "../../types/router.js";
 
-/* GET home page. */
+/* Health check, used by Render to decide whether a deploy is live. */
 const indexRouter: RouterObject = {
-  path: "/",
+  path: "/health",
   functions: [
     {
       method: "get",
       authorization: "none",
-      rateLimit: "strict",
-      keyType: "default",
+      rateLimit: "read",
+      keyType: "ip",
       handler: (_req: Request, res: Response) => {
-        res.status(200).json({ message: "Works!" });
+        res.status(200).json({ status: "ok" });
       },
     },
   ],

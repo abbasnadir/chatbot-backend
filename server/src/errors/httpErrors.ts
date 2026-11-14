@@ -24,3 +24,15 @@ export class NotFoundError extends AppError {
     super(message, 404, "NOT_FOUND")
   }
 }
+
+export class QuotaExceededError extends AppError {
+  constructor(message = "Daily limit reached") {
+    super(message, 429, "QUOTA_EXCEEDED")
+  }
+}
+
+export class UpstreamUnavailableError extends AppError {
+  constructor(message = "The model is unavailable right now", code = "UPSTREAM_ERROR") {
+    super(message, 503, code)
+  }
+}

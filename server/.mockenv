@@ -1,4 +1,0 @@
-PORT=
-PROD_URL=
-NODE_ENV=development || production
-GEMINI_API_KEY=

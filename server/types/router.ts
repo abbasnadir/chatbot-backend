@@ -16,5 +16,5 @@ export interface APIObject {
 
 export type method = "get" | "post" | "put" | "patch" | "delete";
 export type authorization = "required" | "optional" | "none";
-export type rateLimit = "strict" | "gameplay" | "read";
+export type rateLimit = "strict" | "chat" | "read";
 export type keyType = "ip" | "user" | "default";

@@ -11,8 +11,9 @@ and returns middleware to dynamically handle
 authentication based on the RouteObject's needs.
 */
 export function authHandler(authType: authorization): RequestHandler {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    const secret = req.app.locals.deps.jwtSecret;
 
     try {
       // Required Auth, stop the route strictly if unauthenticated by throwing errors
@@ -21,8 +22,8 @@ export function authHandler(authType: authorization): RequestHandler {
           throw new UnauthorizedError("Authentication required");
         }
         try {
-          req.user = await verifyJwt(authHeader.slice(7));
-        } catch (err) {
+          req.user = await verifyJwt(authHeader.slice(7), secret);
+        } catch {
           throw new UnauthorizedError("Invalid or expired token");
         }
 
@@ -30,7 +31,7 @@ export function authHandler(authType: authorization): RequestHandler {
       } else if (authType === "optional") {
         if (authHeader?.startsWith("Bearer ")) {
           try {
-            req.user = await verifyJwt(authHeader.slice(7));
+            req.user = await verifyJwt(authHeader.slice(7), secret);
           } catch {
             // ignore invalid token for optional auth
           }

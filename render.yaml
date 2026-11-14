@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: chatbot-backend
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: MONGODB_DB
+        value: chatbot
+      - key: BACKEND_JWT_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
