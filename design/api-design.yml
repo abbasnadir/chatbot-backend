@@ -1,65 +1,150 @@
 openapi: "3.0.3"
 info:
-  title: Gemini Response API
-  version: "1.0.0"
+  title: Chatbot backend
+  version: "2.0.0"
+  description: >
+    Streams Gemini replies and keeps chat history. Only the Next.js server calls this API.
+    It signs a short-lived HS256 token for each request (issuer "chatbot-web", audience
+    "chatbot-backend") whose subject is the user's id, or "guest:<ip>" for visitors who
+    aren't signed in.
 servers:
-  - url: http://localhost:5000/
+  - url: http://localhost:5000
+security:
+  - bearer: []
 components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Error:
       type: object
-      required:
-        - code
-        - message
+      required: [error]
       properties:
-        code:
-          type: string
-        message:
-          type: string
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - BAD_REQUEST
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - RATE_LIMITED
+                - QUOTA_EXCEEDED
+                - GLOBAL_QUOTA_EXCEEDED
+                - UPSTREAM_RATE_LIMITED
+                - UPSTREAM_ERROR
+                - INTERNAL_ERROR
+            message:
+              type: string
+    Message:
+      type: object
+      required: [id, role, text, createdAt]
+      properties:
+        id: { type: string }
+        role: { type: string, enum: [user, model] }
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
 paths:
-  /:
+  /health:
     get:
-      summary: Fetch the result from Gemini
-      parameters:
-        - name: q
-          in: query
-          description: Query parameter
-          required: true
-          schema:
-            type: string
+      summary: Health check
+      security: []
       responses:
         "200":
-          description: Answer to the query by user
+          description: The server is up
           content:
             application/json:
               schema:
                 type: object
-                required:
-                  - response
                 properties:
-                  response:
-                    type: string
-        "400":
-          description: Bad request or content policy violation
+                  status: { type: string, example: ok }
+  /me:
+    get:
+      summary: The identity in the caller's token
+      responses:
+        "200":
+          description: Caller
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Invalid API key
+                type: object
+                properties:
+                  id: { type: string }
+                  email: { type: string, nullable: true }
+                  guest: { type: boolean }
+        "401": { $ref: "#/components/responses/Error" }
+  /chat:
+    post:
+      summary: Send a message and stream the reply
+      description: >
+        Counts against the caller's daily quota (users 50, guests 10 by default) and a global
+        daily cap. Signed-in users get their last messages sent as context, and the question
+        and answer are saved together once the reply completes. Guests get no context and
+        nothing is saved. Errors before the first token use normal status codes; after that,
+        an `error` event ends the stream.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "200":
+          description: >
+            A server-sent event stream. `delta` events carry `{ "text": string }`, then one
+            `done` event `{ "saved": boolean, "messageId": string | null }`, or an `error`
+            event `{ "code": string, "message": string }`.
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /chat/history:
+    get:
+      summary: The caller's saved messages, oldest first
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Messages
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          description: Rate limit exceeded
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items: { $ref: "#/components/schemas/Message" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Delete the caller's saved messages
+      responses:
+        "200":
+          description: Number of messages deleted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: API offline or model not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                type: object
+                properties:
+                  deleted: { type: integer }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }

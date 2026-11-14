@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import type { RouterObject } from "../../types/router.js";
 
-/* GET home page. */
+/* Who the backend thinks the caller is. Useful when wiring up a new client. */
 const meRouter: RouterObject = {
   path: "/me",
   functions: [
@@ -9,12 +9,12 @@ const meRouter: RouterObject = {
       method: "get",
       authorization: "required",
       rateLimit: "strict",
-      keyType: "default",
+      keyType: "user",
       handler: (req: Request, res: Response) => {
         res.status(200).json({
           id: req.user.id,
-          email: req.user.email,
-          role: req.user.role,
+          email: req.user.email ?? null,
+          guest: req.user.guest,
         });
       },
     },

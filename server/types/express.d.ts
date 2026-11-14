@@ -1,9 +1,9 @@
 declare namespace Express {
   export interface Request {
-    user: {
-      id: string;
-      email: string | undefined;
-      role: string | undefined;
-    };
+    user: import("../src/lib/verifyJwt.js").Identity;
+  }
+
+  export interface Locals {
+    deps: import("../src/deps.js").Deps;
   }
 }
